@@ -28,7 +28,7 @@ def calc_dates(daydelta):
     end_date = end_date.strftime("%Y-%m-%d")
     return (start_date, end_date)
 
-def price_history(tickers, daydelta, percentages):
+def price_history(tickers, daydelta):
     """queries yahoo finance for stock history
 
     Parameters
@@ -37,8 +37,6 @@ def price_history(tickers, daydelta, percentages):
         list of ticker names
     daydelta : int
         length of time to pull history
-    percentages : bool
-        whether or not to convert stock price to percentage
 
     Returns
     -------
@@ -50,16 +48,11 @@ def price_history(tickers, daydelta, percentages):
     for ticker in tickers:
         data = pdr.get_data_yahoo(ticker, start = start_date, end = end_date) #query yahoo finance api
         data = data.reset_index()
-        dates = data["Date"].tolist()
-        close = data["Close"].tolist()
-        if percentages == True: #if user wants the output as percentages
-            original_close = close[0]
-            for i in range(len(close)):
-                close[i] = 100 * (close[i] / original_close) - 100
+        close = data.drop(["Open", "High", "Low", "Adj Close", "Volume"], axis = 1)
         closes.append(close)
-    return (dates, closes)
+    return closes
 
-def plot_stocks(tickers, daydelta, percentages):
+def plot_stocks(tickers, daydelta):
     """plots stocks using matplotlib.pyplot
 
     Parameters
@@ -68,14 +61,12 @@ def plot_stocks(tickers, daydelta, percentages):
         list of ticker names
     daydelta : int
         length of time to pull history
-    percentages : bool
-        whether or not to convert stock price to percentage
     """
-    dates, closes = price_history(tickers, daydelta, percentages) #get the stock history
+    closes = price_history(tickers, daydelta) #get the stock history
     plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%m-%d-%Y')) #date formatting
     plt.gca().xaxis.set_major_locator(mdates.DayLocator())
     for stock in closes: #plot each stock
-        plt.plot(dates, stock)
+        plt.plot(stock["Date"], stock["Close"])
     plt.legend(tickers) #creates a legend to distinguish different tickers
     if daydelta > 14: #avoid a cluttered x-axis
         plt.xticks(visible = False)
